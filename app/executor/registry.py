@@ -1,4 +1,4 @@
-def http_get(input: dict) -> dict:
+def http_get(input_data: object) -> dict:
     return {
         "status": 200,
         "data": {
@@ -7,18 +7,18 @@ def http_get(input: dict) -> dict:
     }
 
 
-def extract_field(input: dict) -> dict:
-    if not isinstance(input, dict):
+def extract_field(input_data: object) -> dict:
+    if not isinstance(input_data, dict):
         raise ValueError("extract_field: input must be a dict")
 
-    if "data" not in input:
+    if "data" not in input_data:
         raise ValueError("extract_field: missing 'data' in input")
 
-    if "path" not in input:
+    if "path" not in input_data:
         raise ValueError("extract_field: missing 'path' in input")
 
-    data = input["data"]
-    path = input["path"]
+    data = input_data["data"]
+    path = input_data["path"]
 
     if not isinstance(path, str):
         raise ValueError("extract_field: 'path' must be a string")
@@ -33,14 +33,14 @@ def extract_field(input: dict) -> dict:
     return {"value": value}
 
 
-def format_summary(input: dict) -> dict:
-    if not isinstance(input, dict):
+def format_summary(input_data: object) -> dict:
+    if not isinstance(input_data, dict):
         raise ValueError("format_summary: input must be a dict")
 
-    if "text" not in input:
+    if "text" not in input_data:
         raise ValueError("format_summary: missing 'text' in input")
 
-    text = input["text"]
+    text = input_data["text"]
 
     return {"summary": f"Summary: {text}"}
 
@@ -52,11 +52,11 @@ OPERATIONS = {
 }
 
 
-def execute_operation(operation: str, input: dict) -> dict:
+def execute_operation(operation: str, input_data: object) -> dict:
     if operation not in OPERATIONS:
         raise ValueError(f"Unknown operation: {operation!r}")
 
-    result = OPERATIONS[operation](input)
+    result = OPERATIONS[operation](input_data)
 
     if not isinstance(result, dict):
         raise ValueError(
