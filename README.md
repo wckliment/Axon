@@ -63,6 +63,12 @@ python -m examples.demo
 python -m examples.demo_failure
 ```
 
+Or via CLI:
+
+```bash
+axon "Get a message and summarize it"
+```
+
 - `demo` — executes a three-task plan end-to-end and prints the full result
 - `demo_failure` — executes a plan where a task references an invalid path, producing a controlled failure with a partial trace
 
