@@ -208,3 +208,23 @@ __marimo__/
 .venv/
 .env
 .claude/
+
+
+# --- Node / Frontend ---
+node_modules/
+dist/
+build/
+.next/
+out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files (frontend)
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
