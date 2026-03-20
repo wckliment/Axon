@@ -19,17 +19,29 @@ The JSON must follow this exact structure:
 }
 
 Allowed operations:
+- retrieve_documents
+- filter_documents
+- summarize_documents
+- format_summary
 - http_get
 - extract_field
-- format_summary
 
 Operation output formats:
+- retrieve_documents returns: {"documents": ["<string>", "..."]}
+- filter_documents returns: {"documents": ["<string>", "..."]}
+- summarize_documents returns: {"summary": string}
+- format_summary returns: {"summary": string}
 - http_get returns: {"status": number, "data": {"message": string}}
 - extract_field returns: {"value": any}
-- format_summary returns: {"summary": string}
 
 Rules:
 - Do not invent new operations — only use operations from the allowed list above
+- Prefer retrieve_documents when the user asks for explanations, concepts, best practices, or knowledge-based answers
+- http_get should only be used for fetching external or API-based data
+- Prefer summarize_documents over format_summary when documents are present
+- format_summary should be used to summarize text or documents when no documents are available
+- After retrieve_documents, you MUST use filter_documents before summarize_documents
+- When documents are retrieved, always include a filtering step before summarization
 - When referencing fields using "path", ensure the path matches the actual structure of the operation output above — do not guess field names
 - "version" must be exactly "1.0"
 - "goal" must be a non-empty string
@@ -42,7 +54,43 @@ Rules:
 - Tasks must be ordered so that dependencies appear before the tasks that depend on them
 - To pass the output of one task as input to another, use: {"source": "<task_id>"} or {"source": "<task_id>", "path": "dot.separated.path"}
 
-Example of a valid plan:
+Example of a retrieval-based plan:
+
+{
+  "version": "1.0",
+  "goal": "Explain embedding best practices",
+  "tasks": [
+    {
+      "id": "task_1",
+      "type": "tool",
+      "operation": "retrieve_documents",
+      "input": {
+        "query": "Explain embedding best practices"
+      },
+      "depends_on": []
+    },
+    {
+      "id": "task_2",
+      "type": "transform",
+      "operation": "filter_documents",
+      "input": {
+        "documents": {"source": "task_1", "path": "documents"}
+      },
+      "depends_on": ["task_1"]
+    },
+    {
+      "id": "task_3",
+      "type": "transform",
+      "operation": "summarize_documents",
+      "input": {
+        "documents": {"source": "task_2", "path": "documents"}
+      },
+      "depends_on": ["task_2"]
+    }
+  ]
+}
+
+Example of a valid non-retrieval plan:
 
 {
   "version": "1.0",
