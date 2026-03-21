@@ -230,3 +230,4 @@ pnpm-debug.log*
 .env.production.local
 chroma_db/
 .claude/settings.local.json
+.claude/settings.local.json
