@@ -1,122 +1,278 @@
-# Axon — Deterministic Task Orchestration Engine
+# Axon
 
-LLM-generated plans executed deterministically with validation and full traceability.
+> Deterministic AI execution engine.
+> LLM plans. Runtime executes. Every step is validated and traceable.
 
----
+Axon is a deterministic LLM orchestration engine that turns model-generated plans into controlled, executable workflows.
 
-## What It Does
+Built as part of a series of AI systems focused on production reliability, orchestration, and retrieval.
 
-Axon takes a structured JSON plan produced by an LLM and executes it step-by-step using a deterministic engine. Each task's inputs are resolved from the outputs of prior tasks, every step is validated before and during execution, and the full execution trace is returned with the result. The LLM is involved only in plan generation — it has no influence over execution.
+It separates **planning (LLM)** from **execution (runtime)** to make AI workflows reliable, debuggable, and production-ready.
 
----
-
-## Why
-
-LLM-based systems are often non-deterministic, difficult to debug, and tightly coupled to model behavior.
-
-Axon isolates the LLM to a single responsibility — plan generation — and enforces deterministic execution through a strict runtime. This makes task workflows predictable, testable, and observable.
+This project demonstrates how to build production-grade AI systems that remain reliable under real-world conditions.
 
 ---
 
-## Core Concepts
+## Overview
 
-- **Planner (LLM)** — generates a structured JSON plan (not executed directly)
-- **Validator** — enforces schema correctness before any execution begins
-- **Executor** — runs tasks sequentially in declaration order
-- **Resolver** — resolves task inputs by injecting outputs from upstream tasks
-- **Operation Registry** — maps operation names to callable tool and transform functions
-- **Execution Trace** — captures input, output, and status for every task
+Most LLM systems rely on prompt chaining and implicit behavior. This makes them difficult to debug, validate, and trust in production.
+
+Axon enforces a different model:
+
+* LLMs generate **structured plans**
+* The runtime **controls execution**
+* Every step is **validated and traceable**
+
+This creates a system that is predictable under real-world conditions—external APIs, multi-step workflows, and unreliable inputs.
 
 ---
 
-## Example
-
-**Flow:**
+## Architecture
 
 ```
-User request → LLM generates plan → validate_plan() → execute_plan() → result + trace
++-------------+      +-----------------+      +----------------------+
+| User Input  | ---> | LLM Planner     | ---> | JSON Task Plan       |
++-------------+      +-----------------+      +----------------------+
+                                                      |
+                                                      v
+                                        +---------------------------+
+                                        | Deterministic Executor    |
+                                        | - task queue              |
+                                        | - dependency handling     |
+                                        | - state management        |
+                                        +---------------------------+
+                                              |              |
+                                              v              v
+                                  +------------------+   +------------------+
+                                  | Tool Layer       |   | Validation Layer |
+                                  | - retrieval      |   | - schema checks  |
+                                  | - API calls      |   | - retries        |
+                                  +------------------+   +------------------+
+                                              \              /
+                                               \            /
+                                                v          v
+                                          +----------------------+
+                                          | Execution Trace      |
+                                          | - step history       |
+                                          | - inputs / outputs   |
+                                          | - UI inspector       |
+                                          +----------------------+
 ```
 
-**Single task:**
+---
+
+## Demo
+
+![Axon Execution Trace](./docs/demo.gif)
+
+* Step-by-step execution trace
+* JSON input/output inspection
+* Error visibility and retry behavior
+* This makes it possible to debug and understand AI behavior at a system level instead of relying on opaque model outputs.
+
+---
+
+## Execution Model
+
+1. User submits a request
+2. LLM generates a structured JSON task plan
+3. Executor processes tasks deterministically
+4. Tools are invoked explicitly (retrieval / APIs)
+5. Outputs are validated before proceeding
+6. Full execution trace is recorded
+
+---
+
+## Features
+
+* Structured JSON planning (no free-form execution)
+* Deterministic task execution engine
+* Tool integration (retrieval + external APIs)
+* Validation layer with retry handling
+* Full execution trace with step inspection
+* Clear separation of planning vs execution
+* UI for inspecting execution traces and step-level behavior
+
+---
+
+## Example Flow
+
+### Input
+
+```
+Summarize recent customer issues and identify the top 3 recurring problems
+```
+
+### Plan
 
 ```json
 {
-  "id": "task_2",
-  "type": "transform",
-  "operation": "extract_field",
-  "input": {
-    "data": { "source": "task_1" },
-    "path": "data.message"
-  },
-  "depends_on": ["task_1"]
-}
-```
-
-The `source` key tells the resolver to inject the output of `task_1` at runtime.
-
----
-
-## Running the Demo
-
-```bash
-python -m examples.demo
-python -m examples.demo_failure
-```
-
-Or via CLI:
-
-```bash
-axon "Get a message and summarize it"
-```
-
-- `demo` — executes a three-task plan end-to-end and prints the full result
-- `demo_failure` — executes a plan where a task references an invalid path, producing a controlled failure with a partial trace
-
----
-
-## Example Output
-
-```json
-{
-  "status": "success",
-  "result": {
-    "summary": "Summary: mock response"
-  },
-  "trace": [
-    { "task_id": "task_1", "status": "success" },
-    { "task_id": "task_2", "status": "success" }
+  "tasks": [
+    {
+      "id": "fetch_tickets",
+      "type": "retrieval",
+      "input": {
+        "source": "support_tickets",
+        "query": "recent customer issues"
+      }
+    },
+    {
+      "id": "group_issues",
+      "type": "llm_transform",
+      "input": {
+        "from": "fetch_tickets",
+        "instruction": "Cluster similar issues and count frequency"
+      }
+    },
+    {
+      "id": "rank_top_issues",
+      "type": "sort",
+      "input": {
+        "from": "group_issues",
+        "by": "frequency",
+        "limit": 3
+      }
+    }
   ]
 }
+```
+
+### Execution
+
+* Retrieve support tickets
+* Cluster and count issue categories
+* Rank top 3 issues
+* Validate output
+* Record full trace
+
+---
+
+## Use Cases
+
+* Multi-step AI workflows with tool usage
+* Retrieval + reasoning pipelines
+* API orchestration with LLM planning
+* Systems that require traceability, validation, and control over AI behavior
+
+---
+
+## Tech Stack
+
+* **Backend:** Python, FastAPI
+* **Frontend:** React
+* **Planning Layer:** LLM APIs
+* **Retrieval:** vector search / embeddings
+* **Runtime:** deterministic task executor
+
+---
+
+## Project Structure
+
+```
+axon/
+├── backend/
+│   ├── api/           # Entry point (POST /run)
+│   ├── planner/       # LLM planning logic
+│   ├── runtime/       # Execution engine
+│   ├── tools/         # Retrieval + API tools
+│   ├── validation/    # Output validation
+│   └── tracing/       # Execution logs
+├── frontend/
+│   ├── components/    # Trace UI + inspector
+│   └── App.tsx
+├── docs/
+├── tests/
+└── README.md
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+* Python 3.11+
+* Node.js 18+
+* LLM API access
+* Vector retrieval backend
+
+### Setup
+
+```bash
+git clone https://github.com/<your-org>/axon.git
+cd axon
+```
+
+### Backend
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn api.main:app --reload
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 ---
 
 ## Design Principles
 
-- **Deterministic execution** — the LLM does not participate in the control loop
-- **Fail-fast validation** — schema errors are caught before execution begins
-- **No hidden state** — all data flow between tasks is explicit via the resolver
-- **Explicit data flow** — task inputs declare their sources; nothing is implicit
-- **Full observability** — every step produces a trace entry regardless of outcome
-- **Controlled execution boundary** — LLM output is treated as untrusted input and strictly validated before execution
----
+* **The model proposes, the system decides**
+  LLMs generate intent. The runtime controls execution.
 
-## Scope
+* **Deterministic > prompt chaining**
+  Explicit task execution is more reliable than hidden prompt loops.
 
-**This is not:**
-- a chatbot or conversational agent  
-- a full agent framework  
-- production infrastructure  
-- an autonomous agent system (no LLM control loop)  
+* **Observable > opaque**
+  Every step is logged, inspectable, and debuggable.
 
-**This is:**
-- a minimal orchestration core
-- a demonstration of reliability patterns for LLM-driven task execution
+* **Structured > free-form**
+  Plans are machine-checkable before execution begins.
 
 ---
 
-## Future Extensions
+## Why This Matters
 
-- Parallel execution for independent tasks
-- Real API integrations in the operation registry
-- Persistent execution logs
+LLMs are powerful for generating intent, but unreliable as execution environments.
+
+Most systems:
+
+* hide execution inside prompts
+* lack validation boundaries
+* are difficult to debug
+
+Axon treats the LLM as a **planner**, not an autonomous system.
+
+This enables:
+
+* reliable multi-step workflows
+* safe tool usage
+* full traceability of behavior
+
+This is the difference between a demo and a production system.
+
+---
+
+## Future Improvements
+
+* Parallel task execution with dependency graphs
+* Stronger typed schemas and versioning
+* Dynamic tool registry
+* Advanced retry and recovery strategies
+* Evaluation pipelines for plan quality
+* Persistent memory layer
+
+---
+
+## License
+
+MIT License
