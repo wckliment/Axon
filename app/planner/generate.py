@@ -14,4 +14,10 @@ def generate_plan(user_input: str, client) -> dict:
 
     validate_plan(plan)
 
+    # Inject the original user query into filter_documents tasks so
+    # query-aware scoring has the signal it needs.
+    for task in plan.get("tasks", []):
+        if task.get("operation") == "filter_documents":
+            task["input"].setdefault("query", user_input)
+
     return plan

@@ -9,6 +9,6 @@ def retrieve_documents(inputs: Dict[str, Any]) -> Dict[str, List[str]]:
     if not isinstance(query, str) or not query.strip():
         raise ValueError("retrieve_documents requires input {'query': <non-empty string>}")
 
-    documents = retrieve_documents_from_vectormind(query.strip(), k=5)
+    documents = retrieve_documents_from_vectormind(query.strip(), k=10)
 
     return {"documents": documents}
