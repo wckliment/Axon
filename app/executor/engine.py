@@ -5,12 +5,20 @@ from app.executor.trace import create_trace_entry
 
 
 def _documents_are_relevant(documents: list, query: str) -> bool:
-    """Return True if any document shares at least one meaningful keyword with the query."""
-    keywords = {w.lower() for w in query.split() if len(w) > 3}
-    if not keywords:
-        return True  # can't determine irrelevance without keywords, don't block
+    """Strict relevance check based on keyword overlap."""
+    if not documents:
+        return False
+
+    query_terms = {w.lower() for w in query.split() if len(w) > 3}
+    if not query_terms:
+        return False
+
     combined = " ".join(documents).lower()
-    return any(kw in combined for kw in keywords)
+
+    overlap = sum(1 for term in query_terms if term in combined)
+
+    # Require at least one meaningful overlap
+    return overlap >= 1
 
 
 def execute_plan(plan: dict) -> dict:
@@ -19,6 +27,7 @@ def execute_plan(plan: dict) -> dict:
     results = {}
     trace = []
     last_output = None
+    retrieval_debug = None
 
     for task in plan["tasks"]:
         task_id = task["id"]
@@ -34,6 +43,9 @@ def execute_plan(plan: dict) -> dict:
             resolved_input = resolve_input(task["input"], results)
             output = execute_operation(task["operation"], resolved_input)
 
+            if isinstance(output, dict) and "retrieval_debug" in output:
+                retrieval_debug = output["retrieval_debug"]
+
             results[task_id] = output
             last_output = output
 
@@ -41,15 +53,16 @@ def execute_plan(plan: dict) -> dict:
                 create_trace_entry(task_id, "success", resolved_input, output, None)
             )
 
-            # Guard: stop before generation if retrieval failed or returned irrelevant documents
             if isinstance(output, dict) and "documents" in output:
                 docs = output["documents"]
                 query = resolved_input.get("query", "") if isinstance(resolved_input, dict) else ""
+
                 if not docs or not _documents_are_relevant(docs, query):
                     return {
                         "status": "success",
                         "result": "I don't know based on available information.",
                         "trace": trace,
+                        "retrieval_debug": retrieval_debug,
                     }
 
         except Exception as e:
@@ -60,10 +73,12 @@ def execute_plan(plan: dict) -> dict:
                 "status": "failed",
                 "result": None,
                 "trace": trace,
+                "retrieval_debug": retrieval_debug,
             }
 
     return {
         "status": "success",
         "result": last_output,
         "trace": trace,
+        "retrieval_debug": retrieval_debug,
     }
