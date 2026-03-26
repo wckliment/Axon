@@ -25,9 +25,16 @@ class RunRequest(BaseModel):
 @app.post("/run")
 def run_pipeline(request: RunRequest):
     plan = generate_plan(request.input, OpenAIClient())
-    result = execute_plan(plan)
+    execution = execute_plan(plan, user_input=request.input)
+
+    retrieval_debug = execution.get("retrieval_debug") or {
+        "query": request.input,
+        "top_k": [],
+    }
 
     return {
         "plan": plan,
-        "result": result,
+        "trace": execution.get("trace"),
+        "result": execution.get("result"),
+        "retrieval_debug": retrieval_debug,
     }

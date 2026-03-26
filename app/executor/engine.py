@@ -2,6 +2,7 @@ from app.planner.validator import validate_plan
 from app.executor.resolver import resolve_input
 from app.executor.registry import execute_operation
 from app.executor.trace import create_trace_entry
+from vectormind.answer import answer_question
 
 
 def _documents_are_relevant(documents: list, query: str) -> bool:
@@ -21,7 +22,7 @@ def _documents_are_relevant(documents: list, query: str) -> bool:
     return overlap >= 1
 
 
-def execute_plan(plan: dict) -> dict:
+def execute_plan(plan: dict, user_input: str = "") -> dict:
     validate_plan(plan)
 
     results = {}
@@ -54,16 +55,14 @@ def execute_plan(plan: dict) -> dict:
             )
 
             if isinstance(output, dict) and "documents" in output:
-                docs = output["documents"]
-                query = resolved_input.get("query", "") if isinstance(resolved_input, dict) else ""
-
-                if not docs or not _documents_are_relevant(docs, query):
-                    return {
-                        "status": "success",
-                        "result": "I don't know based on available information.",
-                        "trace": trace,
-                        "retrieval_debug": retrieval_debug,
-                    }
+                result = answer_question(user_input)
+                print("AXON RECEIVED ANSWER:", result["result"])
+                return {
+                    "status": "success",
+                    "result": result["result"],
+                    "trace": trace,
+                    "retrieval_debug": result.get("retrieval_debug") or retrieval_debug,
+                }
 
         except Exception as e:
             trace.append(
